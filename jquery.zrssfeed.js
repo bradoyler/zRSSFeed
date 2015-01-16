@@ -1,13 +1,14 @@
 /**
  * Plugin: jquery.zRSSFeed
- * 
+ *
  * Version: 1.2.0
  * (c) Copyright 2010-2013, Zazar Ltd
- * 
+ *
  * Description: jQuery plugin for display of RSS feeds via Google Feed API
  *              (Based on original plugin jGFeed by jQuery HowTo. Filesize function by Cary Dunn.)
- * 
+ *
  * History:
+ * 2.0.0 - Forked by brad oyler to support NBC Localnews feed (Xfinity)
  * 1.2.1 - Added AMD support
  * 1.2.0 - Added month names to date formats
  * 1.1.9 - New dateformat option to allow feed date formatting
@@ -26,335 +27,327 @@
  *
  **/
 (function (factory) {
-	if ( typeof define === 'function' && define.amd ) {
-		// AMD. Register as an anonymous module.
-		define("jquery.zrssfeed", ['jquery'], factory);
-	} else if (typeof exports === 'object') {
-		// Node/CommonJS style for Browserify
-		module.exports = factory;
-	} else {
-		// Browser globals
-		factory(jQuery);
-	}
+  if ( typeof define === 'function' && define.amd ) {
+    // AMD. Register as an anonymous module.
+    define("jquery.zrssfeed", ['jquery'], factory);
+  } else if (typeof exports === 'object') {
+    // Node/CommonJS style for Browserify
+    module.exports = factory;
+  } else {
+    // Browser globals
+    factory(jQuery);
+  }
 }(function ($) {
 
-	$.fn.rssfeed = function(url, options, fn) {	
-	
-		// Set plugin defaults
-		var defaults = {
-			limit: 10,
-			offset: 1,
-			header: true,
-			titletag: 'h4',
-			date: true,
-			dateformat: 'datetime',
-			content: true,
-			snippet: true,
-			media: true,
-			showerror: true,
-			errormsg: '',
-			key: null,
-			ssl: false,
-			linktarget: '_self',
-			linkredirect: '',
-			linkcontent: false,
-			sort: '',
-			sortasc: true,
-			historical: false
-		};  
-		var options = $.extend(defaults, options); 
-		
-		// Functions
-		return this.each(function(i, e) {
-			var $e = $(e);
-			var s = '';
+  $.fn.rssfeed = function(url, options, fn) {
 
-			// Check for SSL protocol
-			if (options.ssl) s = 's';
-			
-			// Add feed class to user div
-			if (!$e.hasClass('rssFeed')) $e.addClass('rssFeed');
-			
-			// Check for valid url
-			if(url == null) return false;
+    // Set plugin defaults
+    var defaults = {
+      limit: 10,
+      offset: 1,
+      header: true,
+      titletag: 'h4',
+      date: true,
+      dateformat: 'datetime',
+      content: true,
+      snippet: true,
+      media: true,
+      showerror: true,
+      errormsg: '',
+      key: null,
+      ssl: false,
+      linktarget: '_self',
+      linkredirect: '',
+      linkcontent: false,
+      sort: '',
+      sortasc: true,
+      historical: false
+    };
+    var options = $.extend(defaults, options);
 
-			// Add start offset to feed length
-			if (options.offset > 0) options.offset -= 1;
-			options.limit += options.offset;
-			
-			// Create Google Feed API address
-			var api = "http"+ s +"://ajax.googleapis.com/ajax/services/feed/load?v=1.0&callback=?&q=" + encodeURIComponent(url);
-			api += "&num=" + options.limit;
-			if (options.historical) api += "&scoring=h";
-			if (options.key != null) api += "&key=" + options.key;
-			api += "&output=json_xml"
+    // Functions
+    return this.each(function(i, e) {
+      var $e = $(e);
+      var s = '';
 
-			// Send request
-			$.getJSON(api, function(data){
-				
-				// Check for error
-				if (data.responseStatus == 200) {
-	
-					// Process the feeds
-					_process(e, data.responseData, options);
+      // Check for SSL protocol
+      if (options.ssl) s = 's';
 
-					// Optional user callback function
-					if ($.isFunction(fn)) fn.call(this,$e);
-					
-				} else {
+      // Add feed class to user div
+      if (!$e.hasClass('rssFeed')) $e.addClass('rssFeed');
 
-					// Handle error if required
-					if (options.showerror)
-						if (options.errormsg != '') {
-							var msg = options.errormsg;
-						} else {
-							var msg = data.responseDetails;
-						};
-						$(e).html('<div class="rssError"><p>'+ msg +'</p></div>');
-				};
-			});				
-		});
-	};
-	
-	// Function to create HTML result
-	var _process = function(e, data, options) {
+      // Check for valid url
+      if(url == null) return false;
 
-		// Get JSON feed data
-		var feeds = data.feed;
-		if (!feeds) {
-			return false;
-		}
-		var rowArray = [];
-		var rowIndex = 0;
-		var html = '';	
-		var row = 'odd';
-		
-		// Get XML data for media (parseXML not used as requires 1.5+)
-		if (options.media) {
-			var xml = _getXMLDocument(data.xmlString);
-			var xmlEntries = xml.getElementsByTagName('item');
-		}
-		
-		// Add header if required
-		if (options.header)
-			html +=	'<div class="rssHeader">' +
-				'<a href="'+feeds.link+'" title="'+ feeds.description +'">'+ feeds.title +'</a>' +
-				'</div>';
-			
-		// Add body
-		html += '<div class="rssBody">' +
-			'<ul>';
+      // Add start offset to feed length
+      if (options.offset > 0) options.offset -= 1;
+      options.limit += options.offset;
+
+      // Create Google Feed API address
+      var api = "http"+ s +"://ajax.googleapis.com/ajax/services/feed/load?v=1.0&callback=?&q=" + encodeURIComponent(url);
+      api += "&num=" + options.limit;
+      if (options.historical) api += "&scoring=h";
+      if (options.key != null) api += "&key=" + options.key;
+      api += "&output=json_xml"
+
+      // Send request
+      $.getJSON(api, function(data){
+
+        // Check for error
+        if (data.responseStatus == 200) {
+
+          // Process the feeds
+          _process(e, data.responseData, options);
+
+          // Optional user callback function
+          if ($.isFunction(fn)) fn.call(this,$e);
+
+        } else {
+
+          // Handle error if required
+          if (options.showerror)
+            if (options.errormsg != '') {
+              var msg = options.errormsg;
+            } else {
+              var msg = data.responseDetails;
+            };
+          $(e).html('<div class="rssError"><p>'+ msg +'</p></div>');
+        };
+      });
+    });
+  };
+
+  // Function to create HTML result
+  var _process = function(e, data, options) {
+
+    // Get JSON feed data
+    var feeds = data.feed;
+    if (!feeds) {
+      return false;
+    }
+    var rowArray = [];
+    var rowIndex = 0;
+    var html = '';
+    var row = 'odd';
+
+    // Get XML data for media (parseXML not used as requires 1.5+)
+    if (options.media) {
+      var xml = _getXMLDocument(data.xmlString);
+      var xmlEntries = xml.getElementsByTagName('item');
+    }
+
+    // Add header if required
+    if (options.header)
+      html +=	'<div class="rssHeader">' +
+      '<a href="'+feeds.link+'" title="'+ feeds.description +'">'+ feeds.title +'</a>' +
+      '</div>';
+
+    // Add body
+    html += '<div class="rssBody">' +
+    '<ul>';
 
 
-		// Add feeds
-		for (var i=options.offset; i<feeds.entries.length; i++) {
-			
-			rowIndex = i - options.offset;
-			rowArray[rowIndex] = [];
+    // Add feeds
+    for (var i=options.offset; i<feeds.entries.length; i++) {
 
-			// Get individual feed
-			var entry = feeds.entries[i];
-			var pubDate;
-			var sort = '';
-			var feedLink = entry.link;
+      rowIndex = i - options.offset;
+      rowArray[rowIndex] = [];
 
-			// Apply sort column
-			switch (options.sort) {
-				case 'title':
-					sort = entry.title;
-					break;
-				case 'date':
-					sort = entry.publishedDate;
-					break;
-			}
-			rowArray[rowIndex]['sort'] = sort;
+      // Get individual feed
+      var entry = feeds.entries[i];
+      var pubDate;
+      var sort = '';
+      var feedLink = entry.link;
 
-			// Format published date
-			if (entry.publishedDate) {
+      // Apply sort column
+      switch (options.sort) {
+        case 'title':
+          sort = entry.title;
+          break;
+        case 'date':
+          sort = entry.publishedDate;
+          break;
+      }
+      rowArray[rowIndex]['sort'] = sort;
 
-				var entryDate = new Date(entry.publishedDate);
-				var pubDate = entryDate.toLocaleDateString() + ' ' + entryDate.toLocaleTimeString();
+      // Format published date
+      if (entry.publishedDate) {
 
-				switch (options.dateformat) {
-					case 'datetime':
-						break;
-					case 'date':
-						pubDate = entryDate.toLocaleDateString();
-						break;
-					case 'time':
-						pubDate = entryDate.toLocaleTimeString();
-						break;
-					case 'timeline':
-						pubDate = _getLapsedTime(entryDate);
-						break;
-					default:
-						pubDate = _formatDate(entryDate,options.dateformat);
-						break;
-				}
-			}
-			
-			// Add feed row
-			if (options.linkredirect) feedLink = encodeURIComponent(feedLink);
-			rowArray[rowIndex]['html'] = '<'+ options.titletag +'><a href="'+ options.linkredirect + feedLink +'" title="View this feed at '+ feeds.title +'">'+ entry.title +'</a></'+ options.titletag +'>'
+        var entryDate = new Date(entry.publishedDate);
+        var pubDate = entryDate.toLocaleDateString() + ' ' + entryDate.toLocaleTimeString();
 
-			if (options.date && pubDate) rowArray[rowIndex]['html'] += '<div>'+ pubDate +'</div>'
-			if (options.content) {
-			
-				// Use feed snippet if available and optioned
-				if (options.snippet && entry.contentSnippet != '') {
-					var content = entry.contentSnippet;
-				} else {
-					var content = entry.content;
-				}
+        switch (options.dateformat) {
+          case 'datetime':
+            break;
+          case 'date':
+            pubDate = entryDate.toLocaleDateString();
+            break;
+          case 'time':
+            pubDate = entryDate.toLocaleTimeString();
+            break;
+          case 'timeline':
+            pubDate = _getLapsedTime(entryDate);
+            break;
+          default:
+            pubDate = _formatDate(entryDate,options.dateformat);
+            break;
+        }
+      }
+      //// Add feed row + Add media thumb
+      if (options.media) {
+        var jsonMedia = entry.mediaGroups[0].contents[0];
 
-				if (options.linkcontent) {
-					content = '<a href="'+ options.linkredirect + feedLink +'" title="View this feed at '+ feeds.title +'">'+ content +'</a>'
-				}
-				
-				rowArray[rowIndex]['html'] += '<p>'+ content +'</p>'
-			}
-			
-			// Add any media
-			if (options.media && xmlEntries.length > 0) {
-				var xmlMedia = xmlEntries[i].getElementsByTagName('enclosure');
-				if (xmlMedia.length > 0) {
-					
-					rowArray[rowIndex]['html'] += '<div class="rssMedia"><div>Media files</div><ul>'
-					
-					for (var m=0; m<xmlMedia.length; m++) {
-						var xmlUrl = xmlMedia[m].getAttribute("url");
-						var xmlType = xmlMedia[m].getAttribute("type");
-						var xmlSize = xmlMedia[m].getAttribute("length");
-						rowArray[rowIndex]['html'] += '<li><a href="'+ xmlUrl +'" title="Download this media">'+ xmlUrl.split('/').pop() +'</a> ('+ xmlType +', '+ _formatFilesize(xmlSize) +')</li>';
-					}
-					rowArray[rowIndex]['html'] += '</ul></div>'
-				}
-			}
-					
-		}
-		
-		// Sort if required
-		if (options.sort) {
-			rowArray.sort(function(a,b) {
+        if(jsonMedia){
+          //console.log('### media', jsonMedia);
+          rowArray[rowIndex]['html'] = "<img class='lead-img' src=" + jsonMedia.thumbnails[0].url +" />";
+        }
+      }
 
-				// Apply sort direction
-				if (options.sortasc) {
-					var c = a['sort'];
-					var d = b['sort'];
-				} else {
-					var c = b['sort'];
-					var d = a['sort'];
-				}
+      if (options.linkredirect) feedLink = encodeURIComponent(feedLink);
+      rowArray[rowIndex]['html'] += '<'+ options.titletag +'><a href="'+ options.linkredirect + feedLink +'" title="View this feed at '+ feeds.title +'">'+ entry.title +'</a></'+ options.titletag +'>'
 
-				if (options.sort == 'date') {
-					return new Date(c) - new Date(d);
-				} else {
-					c = c.toLowerCase();
-					d = d.toLowerCase();
-					return (c < d) ? -1 : (c > d) ? 1 : 0;
-				}
-			});
-		}
+      if (options.date && pubDate) rowArray[rowIndex]['html'] += "<div class='published-date'>"+ pubDate +"</div>";
 
-		// Add rows to output
-		$.each(rowArray, function(e) {
+      if (options.content) {
 
-			html += '<li class="rssRow '+row+'">' + rowArray[e]['html'] + '</li>';
+        // Use feed snippet if available and optioned
+        if (options.snippet && entry.contentSnippet != '') {
+          var content = entry.contentSnippet;
+        } else {
+          var content = entry.content;
+        }
 
-			// Alternate row classes
-			if (row == 'odd') {
-				row = 'even';
-			} else {
-				row = 'odd';
-			}			
-		});
+        if (options.linkcontent) {
+          content = '<a href="'+ options.linkredirect + feedLink +'" title="View this feed at '+ feeds.title +'">'+ content +'</a>'
+        }
 
-		html += '</ul>' +
-			'</div>'
-		
-		$(e).html(html);
+        rowArray[rowIndex]['html'] += '<p>'+ content +'</p>'
+      }
 
-		// Apply target to links
-		$('a',e).attr('target',options.linktarget);
-	};
-	
-	var _formatFilesize = function(bytes) {
-		var s = ['bytes', 'kb', 'MB', 'GB', 'TB', 'PB'];
-		var e = Math.floor(Math.log(bytes)/Math.log(1024));
-		return (bytes/Math.pow(1024, Math.floor(e))).toFixed(2)+" "+s[e];
-	}
+    }
 
-	var _formatDate = function(date,mask) {
+    // Sort if required
+    if (options.sort) {
+      rowArray.sort(function(a,b) {
 
-		// Convert to date and set return to the mask
-		var fmtDate = new Date(date);
-		date = mask;
+        // Apply sort direction
+        if (options.sortasc) {
+          var c = a['sort'];
+          var d = b['sort'];
+        } else {
+          var c = b['sort'];
+          var d = a['sort'];
+        }
 
-		// Replace mask tokens
-		date = date.replace('dd', _formatDigit(fmtDate.getDate()));
-		date = date.replace('MMMM', _getMonthName(fmtDate.getMonth()));
-		date = date.replace('MM', _formatDigit(fmtDate.getMonth()+1));
-		date = date.replace('yyyy',fmtDate.getFullYear());
-		date = date.replace('hh', _formatDigit(fmtDate.getHours()));
-		date = date.replace('mm', _formatDigit(fmtDate.getMinutes()));
-		date = date.replace('ss', _formatDigit(fmtDate.getSeconds()));
+        if (options.sort == 'date') {
+          return new Date(c) - new Date(d);
+        } else {
+          c = c.toLowerCase();
+          d = d.toLowerCase();
+          return (c < d) ? -1 : (c > d) ? 1 : 0;
+        }
+      });
+    }
 
-		return date;
-	}
+    // Add rows to output
+    $.each(rowArray, function(e) {
 
-	var _formatDigit = function(digit) {
-		digit += '';
-		if (digit.length < 2) digit = '0' + digit;
-		return digit;
-	}
+      html += '<li class="rssRow '+row+'">' + rowArray[e]['html'] + '</li>';
 
-	var _getMonthName = function(month) {
-		var name = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-		return name[month];
-	}
+      // Alternate row classes
+      if (row == 'odd') {
+        row = 'even';
+      } else {
+        row = 'odd';
+      }
+    });
 
-	var _getXMLDocument = function(string) {
-		var browser = navigator.appName;
-		var xml;
-		if (browser == 'Microsoft Internet Explorer') {
-			xml = new ActiveXObject('Microsoft.XMLDOM');
-			xml.async = 'false';
-			xml.loadXML(string);
-		} else {
-			xml = (new DOMParser()).parseFromString(string, 'text/xml');
-		}
-		return xml;
-	}
+    html += '</ul>' +
+    '</div>'
 
-	var _getLapsedTime = function(date) {
-		
-		// Get current date and format date parameter
-		var todayDate = new Date();	
-		var pastDate = new Date(date);
+    $(e).html(html);
 
-		// Get lasped time in seconds
-		var lapsedTime = Math.round((todayDate.getTime() - pastDate.getTime())/1000)
+    // Apply target to links
+    $('a',e).attr('target',options.linktarget);
+  };
 
-		// Return lasped time in seconds, minutes, hours, days and weeks
-		if (lapsedTime < 60) {
-			return '< 1 min';
-		} else if (lapsedTime < (60*60)) {
-			var t = Math.round(lapsedTime / 60) - 1;
-			var u = 'min';
-		} else if (lapsedTime < (24*60*60)) {
-			var t = Math.round(lapsedTime / 3600) - 1;
-			var u = 'hour';
-		} else if (lapsedTime < (7*24*60*60)) {
-			var t = Math.round(lapsedTime / 86400) - 1;
-			var u = 'day';
-		} else {
-			var t = Math.round(lapsedTime / 604800) - 1;
-			var u = 'week';
-		}
-		
-		// Check for plural units
-		if (t > 1) u += 's';
-		return t + ' ' + u;
-	}
+  var _formatFilesize = function(bytes) {
+    var s = ['bytes', 'kb', 'MB', 'GB', 'TB', 'PB'];
+    var e = Math.floor(Math.log(bytes)/Math.log(1024));
+    return (bytes/Math.pow(1024, Math.floor(e))).toFixed(2)+" "+s[e];
+  }
+
+  var _formatDate = function(date,mask) {
+
+    // Convert to date and set return to the mask
+    var fmtDate = new Date(date);
+    date = mask;
+
+    // Replace mask tokens
+    date = date.replace('dd', _formatDigit(fmtDate.getDate()));
+    date = date.replace('MMMM', _getMonthName(fmtDate.getMonth()));
+    date = date.replace('MM', _formatDigit(fmtDate.getMonth()+1));
+    date = date.replace('yyyy',fmtDate.getFullYear());
+    date = date.replace('hh', _formatDigit(fmtDate.getHours()));
+    date = date.replace('mm', _formatDigit(fmtDate.getMinutes()));
+    date = date.replace('ss', _formatDigit(fmtDate.getSeconds()));
+
+    return date;
+  }
+
+  var _formatDigit = function(digit) {
+    digit += '';
+    if (digit.length < 2) digit = '0' + digit;
+    return digit;
+  }
+
+  var _getMonthName = function(month) {
+    var name = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return name[month];
+  }
+
+  var _getXMLDocument = function(string) {
+    var browser = navigator.appName;
+    var xml;
+    if (browser == 'Microsoft Internet Explorer') {
+      xml = new ActiveXObject('Microsoft.XMLDOM');
+      xml.async = 'false';
+      xml.loadXML(string);
+    } else {
+      xml = (new DOMParser()).parseFromString(string, 'text/xml');
+    }
+    return xml;
+  }
+
+  var _getLapsedTime = function(date) {
+
+    // Get current date and format date parameter
+    var todayDate = new Date();
+    var pastDate = new Date(date);
+
+    // Get lasped time in seconds
+    var lapsedTime = Math.round((todayDate.getTime() - pastDate.getTime())/1000)
+
+    // Return lasped time in seconds, minutes, hours, days and weeks
+    if (lapsedTime < 60) {
+      return '< 1 min';
+    } else if (lapsedTime < (60*60)) {
+      var t = Math.round(lapsedTime / 60) - 1;
+      var u = 'min';
+    } else if (lapsedTime < (24*60*60)) {
+      var t = Math.round(lapsedTime / 3600) - 1;
+      var u = 'hour';
+    } else if (lapsedTime < (7*24*60*60)) {
+      var t = Math.round(lapsedTime / 86400) - 1;
+      var u = 'day';
+    } else {
+      var t = Math.round(lapsedTime / 604800) - 1;
+      var u = 'week';
+    }
+
+    // Check for plural units
+    if (t > 1) u += 's';
+    return t + ' ' + u;
+  }
 
 }));
